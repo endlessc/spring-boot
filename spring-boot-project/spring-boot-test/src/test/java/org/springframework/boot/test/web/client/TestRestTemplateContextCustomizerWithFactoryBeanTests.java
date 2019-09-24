@@ -35,26 +35,25 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Madhura Bhave
  */
-@SpringBootTest(
-		classes = TestRestTemplateContextCustomizerWithFactoryBeanTests.TestClassWithFactoryBean.class,
+@SpringBootTest(classes = TestRestTemplateContextCustomizerWithFactoryBeanTests.TestClassWithFactoryBean.class,
 		webEnvironment = WebEnvironment.RANDOM_PORT)
 @DirtiesContext
-public class TestRestTemplateContextCustomizerWithFactoryBeanTests {
+class TestRestTemplateContextCustomizerWithFactoryBeanTests {
 
 	@Autowired
 	private TestRestTemplate restTemplate;
 
 	@Test
-	public void test() {
+	void test() {
 		assertThat(this.restTemplate).isNotNull();
 	}
 
-	@Configuration
+	@Configuration(proxyBeanMethods = false)
 	@ComponentScan("org.springframework.boot.test.web.client.scan")
 	static class TestClassWithFactoryBean {
 
 		@Bean
-		public TomcatServletWebServerFactory webServerFactory() {
+		TomcatServletWebServerFactory webServerFactory() {
 			return new TomcatServletWebServerFactory(0);
 		}
 

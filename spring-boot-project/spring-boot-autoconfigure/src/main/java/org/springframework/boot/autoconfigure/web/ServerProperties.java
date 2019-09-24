@@ -24,10 +24,9 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 import io.undertow.UndertowOptions;
 
@@ -62,7 +61,9 @@ import org.springframework.util.unit.DataSize;
  * @author Artsiom Yudovin
  * @author Andrew McGhie
  * @author Rafiullah Hamedy
- *
+ * @author Dirk Deyne
+ * @author HaiTao Zhang
+ * @since 1.0.0
  */
 @ConfigurationProperties(prefix = "server", ignoreUnknownFields = true)
 public class ServerProperties {
@@ -142,8 +143,8 @@ public class ServerProperties {
 	}
 
 	public void setUseForwardHeaders(Boolean useForwardHeaders) {
-		this.forwardHeadersStrategy = Boolean.TRUE.equals(useForwardHeaders)
-				? ForwardHeadersStrategy.NATIVE : ForwardHeadersStrategy.NONE;
+		this.forwardHeadersStrategy = Boolean.TRUE.equals(useForwardHeaders) ? ForwardHeadersStrategy.NATIVE
+				: ForwardHeadersStrategy.NONE;
 	}
 
 	public String getServerHeader() {
@@ -296,8 +297,7 @@ public class ServerProperties {
 				+ "169\\.254\\.\\d{1,3}\\.\\d{1,3}|" // 169.254/16
 				+ "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|" // 127/8
 				+ "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" // 172.16/12
-				+ "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
-				+ "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}|" //
+				+ "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}|" //
 				+ "0:0:0:0:0:0:0:1|::1";
 
 		/**
@@ -320,6 +320,11 @@ public class ServerProperties {
 		 * `X-FORWARDED-FOR`.
 		 */
 		private String remoteIpHeader;
+
+		/**
+		 * Name of the HTTP header from which the remote host is extracted.
+		 */
+		private String hostHeader = "X-Forwarded-Host";
 
 		/**
 		 * Tomcat base directory. If not specified, a temporary directory is used.
@@ -398,9 +403,26 @@ public class ServerProperties {
 		private List<String> additionalTldSkipPatterns = new ArrayList<>();
 
 		/**
+		 * Comma-separated list of additional unencoded characters that should be allowed
+		 * in URI paths. Only "< > [ \ ] ^ ` { | }" are allowed.
+		 */
+		private List<Character> relaxedPathChars = new ArrayList<>();
+
+		/**
+		 * Comma-separated list of additional unencoded characters that should be allowed
+		 * in URI query strings. Only "< > [ \ ] ^ ` { | }" are allowed.
+		 */
+		private List<Character> relaxedQueryChars = new ArrayList<>();
+
+		/**
 		 * Static resource configuration.
 		 */
 		private final Resource resource = new Resource();
+
+		/**
+		 * Modeler MBean Registry configuration.
+		 */
+		private final Mbeanregistry mbeanregistry = new Mbeanregistry();
 
 		public int getMaxThreads() {
 			return this.maxThreads;
@@ -502,6 +524,14 @@ public class ServerProperties {
 			this.remoteIpHeader = remoteIpHeader;
 		}
 
+		public String getHostHeader() {
+			return this.hostHeader;
+		}
+
+		public void setHostHeader(String hostHeader) {
+			this.hostHeader = hostHeader;
+		}
+
 		public Charset getUriEncoding() {
 			return this.uriEncoding;
 		}
@@ -550,8 +580,28 @@ public class ServerProperties {
 			this.additionalTldSkipPatterns = additionalTldSkipPatterns;
 		}
 
+		public List<Character> getRelaxedPathChars() {
+			return this.relaxedPathChars;
+		}
+
+		public void setRelaxedPathChars(List<Character> relaxedPathChars) {
+			this.relaxedPathChars = relaxedPathChars;
+		}
+
+		public List<Character> getRelaxedQueryChars() {
+			return this.relaxedQueryChars;
+		}
+
+		public void setRelaxedQueryChars(List<Character> relaxedQueryChars) {
+			this.relaxedQueryChars = relaxedQueryChars;
+		}
+
 		public Resource getResource() {
 			return this.resource;
+		}
+
+		public Mbeanregistry getMbeanregistry() {
+			return this.mbeanregistry;
 		}
 
 		/**
@@ -823,6 +873,23 @@ public class ServerProperties {
 
 		}
 
+		public static class Mbeanregistry {
+
+			/**
+			 * Whether Tomcat's MBean Registry should be enabled.
+			 */
+			private boolean enabled;
+
+			public boolean isEnabled() {
+				return this.enabled;
+			}
+
+			public void setEnabled(boolean enabled) {
+				this.enabled = enabled;
+			}
+
+		}
+
 	}
 
 	/**
@@ -852,6 +919,21 @@ public class ServerProperties {
 		 */
 		private Integer selectors = -1;
 
+		/**
+		 * Maximum number of threads.
+		 */
+		private Integer maxThreads = 200;
+
+		/**
+		 * Minimum number of threads.
+		 */
+		private Integer minThreads = 8;
+
+		/**
+		 * Maximum thread idle time.
+		 */
+		private Duration idleTimeout = Duration.ofMillis(60000);
+
 		public Accesslog getAccesslog() {
 			return this.accesslog;
 		}
@@ -880,6 +962,30 @@ public class ServerProperties {
 			this.selectors = selectors;
 		}
 
+		public void setMinThreads(Integer minThreads) {
+			this.minThreads = minThreads;
+		}
+
+		public Integer getMinThreads() {
+			return this.minThreads;
+		}
+
+		public void setMaxThreads(Integer maxThreads) {
+			this.maxThreads = maxThreads;
+		}
+
+		public Integer getMaxThreads() {
+			return this.maxThreads;
+		}
+
+		public void setIdleTimeout(Duration idleTimeout) {
+			this.idleTimeout = idleTimeout;
+		}
+
+		public Duration getIdleTimeout() {
+			return this.idleTimeout;
+		}
+
 		/**
 		 * Jetty access log properties.
 		 */
@@ -889,6 +995,17 @@ public class ServerProperties {
 			 * Enable access log.
 			 */
 			private boolean enabled = false;
+
+			/**
+			 * Log format.
+			 */
+			private FORMAT format = FORMAT.NCSA;
+
+			/**
+			 * Custom log format, see org.eclipse.jetty.server.CustomRequestLog. If
+			 * defined, overrides the "format" configuration key.
+			 */
+			private String customFormat;
 
 			/**
 			 * Log filename. If not specified, logs redirect to "System.err".
@@ -911,47 +1028,6 @@ public class ServerProperties {
 			private boolean append;
 
 			/**
-			 * Enable extended NCSA format.
-			 */
-			private boolean extendedFormat;
-
-			/**
-			 * Timestamp format of the request log.
-			 */
-			private String dateFormat = "dd/MMM/yyyy:HH:mm:ss Z";
-
-			/**
-			 * Locale of the request log.
-			 */
-			private Locale locale;
-
-			/**
-			 * Timezone of the request log.
-			 */
-			private TimeZone timeZone = TimeZone.getTimeZone("GMT");
-
-			/**
-			 * Enable logging of the request cookies.
-			 */
-			private boolean logCookies;
-
-			/**
-			 * Enable logging of the request hostname.
-			 */
-			private boolean logServer;
-
-			/**
-			 * Enable logging of request processing time.
-			 */
-			private boolean logLatency;
-
-			/**
-			 * Whether to log IP address from the "X-Forwarded-For" header rather than the
-			 * one from the connection.
-			 */
-			private boolean preferProxiedForAddress = false;
-
-			/**
 			 * Request paths that should not be logged.
 			 */
 			private List<String> ignorePaths;
@@ -962,6 +1038,22 @@ public class ServerProperties {
 
 			public void setEnabled(boolean enabled) {
 				this.enabled = enabled;
+			}
+
+			public FORMAT getFormat() {
+				return this.format;
+			}
+
+			public void setFormat(FORMAT format) {
+				this.format = format;
+			}
+
+			public String getCustomFormat() {
+				return this.customFormat;
+			}
+
+			public void setCustomFormat(String customFormat) {
+				this.customFormat = customFormat;
 			}
 
 			public String getFilename() {
@@ -996,76 +1088,30 @@ public class ServerProperties {
 				this.append = append;
 			}
 
-			public boolean isExtendedFormat() {
-				return this.extendedFormat;
-			}
-
-			public void setExtendedFormat(boolean extendedFormat) {
-				this.extendedFormat = extendedFormat;
-			}
-
-			public String getDateFormat() {
-				return this.dateFormat;
-			}
-
-			public void setDateFormat(String dateFormat) {
-				this.dateFormat = dateFormat;
-			}
-
-			public Locale getLocale() {
-				return this.locale;
-			}
-
-			public void setLocale(Locale locale) {
-				this.locale = locale;
-			}
-
-			public TimeZone getTimeZone() {
-				return this.timeZone;
-			}
-
-			public void setTimeZone(TimeZone timeZone) {
-				this.timeZone = timeZone;
-			}
-
-			public boolean isLogCookies() {
-				return this.logCookies;
-			}
-
-			public void setLogCookies(boolean logCookies) {
-				this.logCookies = logCookies;
-			}
-
-			public boolean isLogServer() {
-				return this.logServer;
-			}
-
-			public void setLogServer(boolean logServer) {
-				this.logServer = logServer;
-			}
-
-			public boolean isLogLatency() {
-				return this.logLatency;
-			}
-
-			public void setLogLatency(boolean logLatency) {
-				this.logLatency = logLatency;
-			}
-
-			public boolean isPreferProxiedForAddress() {
-				return this.preferProxiedForAddress;
-			}
-
-			public void setPreferProxiedForAddress(boolean preferProxiedForAddress) {
-				this.preferProxiedForAddress = preferProxiedForAddress;
-			}
-
 			public List<String> getIgnorePaths() {
 				return this.ignorePaths;
 			}
 
 			public void setIgnorePaths(List<String> ignorePaths) {
 				this.ignorePaths = ignorePaths;
+			}
+
+			/**
+			 * Log format for Jetty access logs.
+			 */
+			public enum FORMAT {
+
+				/**
+				 * NCSA format, as defined in CustomRequestLog#NCSA_FORMAT.
+				 */
+				NCSA,
+
+				/**
+				 * Extended NCSA format, as defined in
+				 * CustomRequestLog#EXTENDED_NCSA_FORMAT.
+				 */
+				EXTENDED_NCSA
+
 			}
 
 		}
@@ -1155,6 +1201,8 @@ public class ServerProperties {
 		private boolean alwaysSetKeepAlive = true;
 
 		private final Accesslog accesslog = new Accesslog();
+
+		private final Options options = new Options();
 
 		public DataSize getMaxHttpPostSize() {
 			return this.maxHttpPostSize;
@@ -1264,6 +1312,10 @@ public class ServerProperties {
 			return this.accesslog;
 		}
 
+		public Options getOptions() {
+			return this.options;
+		}
+
 		/**
 		 * Undertow access log properties.
 		 */
@@ -1345,6 +1397,22 @@ public class ServerProperties {
 
 			public void setRotate(boolean rotate) {
 				this.rotate = rotate;
+			}
+
+		}
+
+		public static class Options {
+
+			private Map<String, String> socket = new LinkedHashMap<>();
+
+			private Map<String, String> server = new LinkedHashMap<>();
+
+			public Map<String, String> getServer() {
+				return this.server;
+			}
+
+			public Map<String, String> getSocket() {
+				return this.socket;
 			}
 
 		}

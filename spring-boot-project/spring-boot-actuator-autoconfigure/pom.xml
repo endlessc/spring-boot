@@ -70,11 +70,6 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>com.timgroup</groupId>
-			<artifactId>java-statsd-client</artifactId>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
 			<optional>true</optional>
@@ -349,7 +344,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-spring4-embedded</artifactId>
+			<artifactId>infinispan-spring5-embedded</artifactId>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -497,6 +492,12 @@
 			<groupId>com.squareup.okhttp3</groupId>
 			<artifactId>mockwebserver</artifactId>
 			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.hamcrest</groupId>
+					<artifactId>hamcrest-core</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.jayway.jsonpath</groupId>
@@ -551,7 +552,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.ext</groupId>
-			<artifactId>jersey-spring4</artifactId>
+			<artifactId>jersey-spring5</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -647,7 +648,7 @@
 									<goal>wget</goal>
 								</goals>
 								<configuration>
-									<url>https://repo.spring.io/release/io/spring/docresources/spring-doc-resources/${spring-doc-resources.version}/spring-doc-resources-${spring-doc-resources.version}.zip</url>
+									<url>${spring-doc-resources.url}</url>
 									<unpack>true</unpack>
 									<outputDirectory>${refdocs.build.directory}</outputDirectory>
 								</configuration>
@@ -763,7 +764,14 @@
 										<icons>font</icons>
 										<stylesdir>css/</stylesdir>
 										<stylesheet>spring.css</stylesheet>
+										<attribute-missing>warn</attribute-missing>
 									</attributes>
+									<logHandler>
+										<outputToConsole>true</outputToConsole>
+										<failIf>
+											<severity>DEBUG</severity>
+										</failIf>
+									</logHandler>
 								</configuration>
 							</execution>
 							<execution>
@@ -791,7 +799,7 @@
 							<dependency>
 								<groupId>org.asciidoctor</groupId>
 								<artifactId>asciidoctorj-pdf</artifactId>
-								<version>1.5.0-alpha.11</version>
+								<version>1.5.0-alpha.18</version>
 							</dependency>
 						</dependencies>
 					</plugin>
